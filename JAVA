@@ -1,0 +1,310 @@
+class Q {
+    int n;
+    boolean valueset = false;
+
+    synchronized int get() {
+        while (!valueset)
+            try {
+                wait();
+            } catch (InterruptedException e) {
+                System.out.println("Thread Interrupted");
+            }
+        System.out.println("Got :" + n);
+        valueset = false;
+        notify();
+        return n;
+    }
+
+    synchronized void put(int n) {
+        while (valueset)
+            try {
+                wait();
+            } catch (InterruptedException e) {
+                System.out.println("Thread interrupted");
+            }
+        this.n = n;
+        valueset = true;
+        System.out.println("put " + n);
+        notify();
+    }
+}
+
+class Producer implements Runnable {
+    Q q;
+
+    Producer(Q q) {
+        this.q = q;
+        new Thread(this, "Producer").start();
+    }
+
+    public void run() {
+        int i = 0;
+        while (true) {
+            q.put(i++);
+        }
+    }
+}
+
+class Consumer implements Runnable {
+    Q q;
+
+    Consumer(Q q) {
+        this.q = q;
+        new Thread(this, "Consumer").start();
+    }
+
+    public void run() {
+        int i = 0;
+        while (true) {
+            q.get();
+        }
+    }
+}
+
+class Demo {
+    public static void main(String args[]) {
+        Q q = new Q();
+        new Producer(q);
+        new Consumer(q);
+        System.out.println("press ctrl+c to exit");
+    }
+}
+
+****************************************************
+import java.awt.Color;
+import java.awt.Graphics;
+
+import javax.swing.*;
+
+/*
+<applet code="JTabbedPaneDemo" width=400 height=100>
+</applet>
+*/
+public class JTabbedPaneDemo extends JApplet {
+    public void init() {
+        try {
+            SwingUtilities.invokeAndWait(
+                    new Runnable() {
+                        public void run() {
+                            makeGUI();
+                        }
+                    }
+            );
+        } catch (Exception exc) {
+            System.out.println("Can't create because of " +exc);
+        }
+    }
+
+    private void makeGUI() {
+    	
+        JTabbedPane jtp = new JTabbedPane();
+        jtp.addTab("Semister", new SemisterPanel());
+        jtp.addTab("Course", new CoursePanel());
+        jtp.addTab("Elective", new ElectivePanel());
+        add(jtp);
+    
+    }
+}
+
+// Make the panels that will be added to the tabbed pane.
+class SemisterPanel extends JPanel {
+    public SemisterPanel() {
+        JButton b1 = new JButton("2");
+        add(b1);
+        JButton b2 = new JButton("4");
+        add(b2);
+        JButton b3 = new JButton("6");
+        add(b3);
+        JButton b4 = new JButton("8");
+        add(b4);
+        
+}
+}
+
+
+
+class CoursePanel extends JPanel {
+    public CoursePanel() {
+        JCheckBox cb1 = new JCheckBox("EC");
+        add(cb1);
+        JCheckBox cb2 = new JCheckBox("ISE");
+        add(cb2);
+        JCheckBox cb3 = new JCheckBox("CSE");
+        add(cb3);
+    }
+}
+class ElectivePanel extends JPanel {
+    public ElectivePanel() {
+        JComboBox jcb = new JComboBox();
+        jcb.addItem("AI");
+        jcb.addItem("IoT");
+        jcb.addItem("Big Data");
+        add(jcb);
+    }
+
+
+}
+******************************************
+
+import java.rmi.*;
+public interface AddServerIntf extends Remote {
+    int add(int x, int y) throws RemoteException;
+}
+///////////////////////////////////
+import java.rmi.*;
+import java.rmi.server.*;
+public class AddServerImpl extends UnicastRemoteObject implements AddServerIntf{
+    public AddServerImpl() throws RemoteException {}
+    public int add(int x, int y) throws RemoteException {
+        return x+y;
+    }
+}
+///////////////////////////////
+import java.rmi.*;
+public class AddServer {
+    public static void main(String[] args) {
+        try{
+            AddServerImpl server = new AddServerImpl();
+            Naming.rebind("registerme",server);
+            System.out.println("Server is running...");
+        } catch (Exception e) {
+            System.out.println(e);
+        }
+    }
+}
+////////////////////////////
+import java.rmi.*;
+public class AddClient {
+    public static void main(String[] args) {
+        try{
+            AddServerIntf client = (AddServerIntf)Naming.lookup("registerme");
+            System.out.println("First number is :" + args[0]);
+            int x = Integer.parseInt(args[0]);
+            System.out.println("Second number is :" + args[1]);
+            int y = Integer.parseInt(args[1]);
+            System.out.println("Sum =" + client.add(x,y));
+        } catch (Exception e){
+            System.out.println(e);
+        }
+    }
+}
+*****************************************
+
+import java.net.*;
+import java.io.*;
+public class Client {
+    public static void main(String[] args) {
+        Socket client = null;
+        BufferedReader br = null;
+        try {
+            System.out.println(args[0] + " " + args[1]);
+            client = new Socket(args[0],Integer.parseInt(args[1]));
+        } catch (Exception e){}
+        DataInputStream input = null;
+        PrintStream output = null;
+        try {
+            input = new DataInputStream(client.getInputStream());
+            output = new PrintStream(client.getOutputStream());
+            br = new BufferedReader(new InputStreamReader(System.in));
+            String str = input.readLine();  //get the prompt from the server
+            System.out.println(str);
+            String filename = br.readLine();
+            if (filename!=null){
+                output.println(filename);
+            }
+            String data;
+            while ((data=input.readLine())!=null) {
+                System.out.println(data);
+            }
+            client.close();
+        } catch (Exception e){
+            System.out.println(e);
+        }
+    }
+}
+///////////////////////////////////
+import java.net.*;
+import java.io.*;
+
+
+public class Server {
+    public static void main(String[] args) {
+        ServerSocket server = null;
+        try {
+            server = new ServerSocket(Integer.parseInt(args[0]));
+        } catch (Exception e) {
+        }
+        while (true) {
+            Socket client = null;
+            PrintStream output = null;
+            DataInputStream input = null;
+            try {
+                client = server.accept();
+            } catch (Exception e) {
+                System.out.println(e);
+            }
+            try {
+                output = new PrintStream(client.getOutputStream());
+                input = new DataInputStream(client.getInputStream());
+            } catch (Exception e) {
+                System.out.println(e);
+            }
+            //Send the command prompt to client
+            output.println("Enter the filename :>");
+            try {
+                //get the filename from client
+                String filename = input.readLine();
+                System.out.println("Client requested file :" + filename);
+                try {
+                    File f = new File(filename);
+                    BufferedReader br = new BufferedReader(new FileReader(f));
+                    String data;
+                    while ((data = br.readLine()) != null) {
+                        output.println(data);
+                    }
+                } catch (FileNotFoundException e) {
+                    output.println("File not found");
+                }
+                client.close();
+            } catch (Exception e) {
+                System.out.println(e);
+            }
+        }
+    }
+}
+*************************************
+import java.sql.*;
+class prg{
+public static void main(String args[]){
+
+try{
+
+Class.forName("oracle.jdbc.driver.OracleDriver");
+
+Connection con=DriverManager.getConnection("jdbc:oracle:thin:@localhost:1521:xe","javanetwork","tiger");
+
+Statement stmt=con.createStatement();
+//String sql1=("insert into Books values(12,'Java Programming','Herbert',9,'TMH')");
+//String sql2=("update Books set edition=9 where Bid=1432");
+String sql3=("Delete from Books where Bid=12345");
+String sql=("select * from Books");
+//ResultSet rs2=stmt.executeQuery(sql1);
+//ResultSet rs3=stmt.executeQuery(sql2);
+ResultSet rs4=stmt.executeQuery(sql3);
+ResultSet rs=stmt.executeQuery(sql);
+
+
+while(rs.next())
+{
+System.out.println(rs.getInt(1)+ " " +rs.getString(2)+" "+rs.getString(3)+" "+rs.getInt(4)+" "+rs.getString(5) );
+
+}
+con.close();
+
+}catch(Exception e)
+{
+
+System.out.println(e);
+}
+}
+}
